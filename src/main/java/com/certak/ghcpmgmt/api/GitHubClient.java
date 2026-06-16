@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.certak.ghcpmgmt.config.AppConfig;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -43,6 +45,30 @@ public class GitHubClient {
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": GET " + url);
+
+            if (attempt == 0) {
+                try {
+                    ProxySelector selector = httpClient.proxy().orElse(null);
+                    if (selector != null) {
+                        java.util.List<Proxy> proxies = selector.select(URI.create(url));
+                        if (proxies != null && !proxies.isEmpty()) {
+                            Proxy proxy = proxies.get(0);
+                            if (proxy.type() != Proxy.Type.DIRECT) {
+                                InetSocketAddress addr = (InetSocketAddress) proxy.address();
+                                if (addr != null) {
+                                    System.err.println("  Proxy: " + addr.getHostString() + ":" + addr.getPort());
+                                } else {
+                                    System.err.println("  Proxy: " + proxy.type());
+                                }
+                            } else {
+                                System.err.println("  Proxy: none (direct)");
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("  Proxy: error detecting (" + e.getMessage() + ")");
+                }
+            }
 
             if (attempt > 0) {
                 long delay = (long) Math.pow(2, attempt);
