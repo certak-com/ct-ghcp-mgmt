@@ -11,7 +11,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
 /**
  * Thin wrapper around the GitHub REST API using java.net.http.HttpClient.
@@ -28,10 +27,7 @@ public class GitHubClient {
 
     public GitHubClient(AppConfig config) {
         this.config = config;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .proxy(ProxySelector.getDefault())
-                .build();
+        this.httpClient = HttpClients.shared();
         this.objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }

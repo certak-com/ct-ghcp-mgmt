@@ -1,13 +1,17 @@
 package com.certak.ghcpmgmt;
 
+import com.certak.ghcpmgmt.api.HttpClients;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
-import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
-import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 /**
  * Root command for the GitHub management CLI.
@@ -39,21 +43,46 @@ public class GhcpMgmtApp implements Runnable {
     }
 
     private static void checkConnectivity() {
+        HttpClient client = HttpClients.shared();
         System.err.println("Checking internet connectivity...");
+
+        // Print proxy info
+        try {
+            java.net.ProxySelector selector = client.proxy().orElse(null);
+            if (selector != null) {
+                java.util.List<Proxy> proxies = selector.select(URI.create(CONNECTIVITY_CHECK_URLS[0]));
+                if (proxies != null && !proxies.isEmpty()) {
+                    Proxy proxy = proxies.get(0);
+                    if (proxy.type() != Proxy.Type.DIRECT) {
+                        InetSocketAddress addr = (InetSocketAddress) proxy.address();
+                        if (addr != null) {
+                            System.err.println("  Proxy: " + addr.getHostString() + ":" + addr.getPort());
+                        } else {
+                            System.err.println("  Proxy: " + proxy.type());
+                        }
+                    } else {
+                        System.err.println("  Proxy: none (direct)");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("  Proxy: error detecting (" + e.getMessage() + ")");
+        }
+
         for (String urlStr : CONNECTIVITY_CHECK_URLS) {
             try {
-                URL url = URI.create(urlStr).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(5000);
-                conn.setRequestMethod("GET");
-                conn.setInstanceFollowRedirects(false);
-                int code = conn.getResponseCode();
-                String host = url.getHost();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(urlStr))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+                int code = response.statusCode();
                 if (code >= 200 && code < 300) {
-                    System.err.println("  Internet: OK (" + host + " returned " + code + ")");
+                    System.err.println("  Internet: OK (" + urlStr + " returned " + code + ")");
                     return;
                 } else {
-                    System.err.println("  " + host + " returned " + code + ", trying next...");
+                    System.err.println("  " + urlStr + " returned " + code + ", trying next...");
                 }
             } catch (Exception e) {
                 System.err.println("  " + urlStr + ": " + e.getMessage() + ", trying next...");
