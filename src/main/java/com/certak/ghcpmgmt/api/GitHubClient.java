@@ -39,14 +39,18 @@ public class GitHubClient {
         String url = config.getBaseUrl() + path;
 
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
+            System.err.println(attemptLabel + ": GET " + url);
+
             if (attempt > 0) {
                 long delay = (long) Math.pow(2, attempt);
-                System.err.println("Retry " + attempt + "/" + MAX_RETRIES
-                        + " (after " + delay + "s)...");
+                System.err.println("  Waiting " + delay + "s before retry...");
                 try {
                     Thread.sleep(delay * 1000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
+                    System.err.println(attemptLabel + " FAILED: Request interrupted");
+                    ie.printStackTrace();
                     throw new GitHubApiException("Request interrupted", ie);
                 }
             }
@@ -65,10 +69,14 @@ public class GitHubClient {
                         HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    System.err.println("  Response: " + response.statusCode());
                     return objectMapper.readValue(response.body(), responseType);
                 }
 
+                System.err.println("  Response: " + response.statusCode());
+
                 if (isRetryable(response.statusCode())) {
+                    System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
 
@@ -76,12 +84,17 @@ public class GitHubClient {
 
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                System.err.println(attemptLabel + " FAILED: Request interrupted");
+                ie.printStackTrace();
                 throw new GitHubApiException("Request interrupted", ie);
             } catch (java.io.IOException e) {
+                System.err.println(attemptLabel + " FAILED: " + e.getMessage());
+                e.printStackTrace();
                 throw new GitHubApiException(-1, "Request failed: " + e.getMessage());
             }
         }
 
+        System.err.println("FAILED: Max retries exceeded for " + url);
         throw new GitHubApiException("Max retries exceeded for " + url);
     }
 
