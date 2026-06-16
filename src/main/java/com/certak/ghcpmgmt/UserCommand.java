@@ -10,7 +10,7 @@ import picocli.CommandLine.Spec;
 @CommandLine.Command(name = "user",
         description = "User-related commands",
         mixinStandardHelpOptions = true,
-        subcommands = {MeCommand.class})
+        subcommands = {MeCommand.class, ShowUserCommand.class})
 public class UserCommand implements Runnable {
 
     @Spec

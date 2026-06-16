@@ -19,6 +19,7 @@ Before implementing:
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - If you write 200 lines and it could be 50, rewrite it.
+- Avoid duplication for commonly solved problems such as logging, error handling, and argument parsing. Favour shared code instead.
 
 ## 3. Surgical Changes
 
