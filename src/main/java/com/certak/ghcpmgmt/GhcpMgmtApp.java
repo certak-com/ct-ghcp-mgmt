@@ -35,6 +35,7 @@ public class GhcpMgmtApp implements Runnable {
     };
 
     public static void main(String[] args) {
+        System.setProperty("java.net.useSystemProxies", "true");
         checkConnectivity();
         int exitCode = new CommandLine(new GhcpMgmtApp()).execute(args);
         System.exit(exitCode);
