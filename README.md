@@ -6,6 +6,7 @@ GitHub REST API management CLI.
 
 - Java 25+
 - Maven 3.6+
+- API docs https://docs.github.com/en/enterprise-cloud@latest/rest/quickstart?apiVersion=2026-03-10
 
 ## Running
 
