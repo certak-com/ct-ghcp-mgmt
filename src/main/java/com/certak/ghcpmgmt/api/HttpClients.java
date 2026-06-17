@@ -19,6 +19,7 @@ public final class HttpClients {
     private static final HttpClient INSTANCE = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .proxy(ProxySelector.getDefault())
+            .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
     public static HttpClient shared() {
