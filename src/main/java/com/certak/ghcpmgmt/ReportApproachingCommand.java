@@ -4,6 +4,7 @@ import picocli.CommandLine;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -33,11 +34,12 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     .filter(u -> u.usagePercent() >= threshold)
                     .toList();
 
+            Map<String, String> names = CopilotReportUtils.resolveNames(approaching);
             System.out.println();
             System.out.printf("Users within %.0f%% of their monthly quota (usage >= %.0f%%):%n",
                     withinPercent, threshold);
             System.out.println();
-            CopilotReportUtils.printTable(approaching);
+            CopilotReportUtils.printTable(approaching, names);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

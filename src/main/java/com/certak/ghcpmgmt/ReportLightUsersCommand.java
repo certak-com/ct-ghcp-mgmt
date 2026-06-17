@@ -4,6 +4,7 @@ import picocli.CommandLine;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -32,10 +33,11 @@ public class ReportLightUsersCommand implements Callable<Integer> {
                     .filter(u -> u.usagePercent() < belowPercent)
                     .toList();
 
+            Map<String, String> names = CopilotReportUtils.resolveNames(light);
             System.out.println();
             System.out.printf("Light users below %.0f%% monthly quota usage:%n", belowPercent);
             System.out.println();
-            CopilotReportUtils.printTable(light);
+            CopilotReportUtils.printTable(light, names);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

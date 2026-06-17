@@ -4,6 +4,7 @@ import picocli.CommandLine;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -22,8 +23,9 @@ public class ReportAllCommand implements Callable<Integer> {
             if (report == null) return 1;
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
+            Map<String, String> names = CopilotReportUtils.resolveNames(users);
             System.out.println();
-            CopilotReportUtils.printTable(users);
+            CopilotReportUtils.printTable(users, names);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

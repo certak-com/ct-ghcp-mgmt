@@ -1,5 +1,8 @@
 package com.certak.ghcpmgmt;
 
+import com.certak.ghcpmgmt.api.GitHubClient;
+import com.certak.ghcpmgmt.config.AppConfig;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -119,17 +122,35 @@ final class CopilotReportUtils {
                 .toList();
     }
 
-    static void printTable(List<UserUsage> users) {
+    static void printTable(List<UserUsage> users, Map<String, String> names) {
         if (users.isEmpty()) {
             System.out.println("No users found.");
             return;
         }
-        System.out.printf("%-5s  %-10s  %15s  %13s  %8s%n", "#", "User ID", "Credits Used", "Monthly Quota", "Usage %");
-        System.out.println("-".repeat(59));
+        System.out.printf("%-5s  %-10s  %-30s  %13s  %13s  %8s%n",
+                "#", "User ID", "Name", "Credits Used", "Monthly Quota", "Usage %");
+        System.out.println("-".repeat(87));
         int rank = 1;
         for (UserUsage u : users) {
-            System.out.printf("%-5d  %-10s  %15.2f  %13.0f  %7.1f%%%n",
-                    rank++, u.userId, u.totalQuantity, u.quota, u.usagePercent());
+            String name = names.getOrDefault(u.userId, "");
+            System.out.printf("%-5d  %-10s  %-30s  %13.2f  %13.0f  %7.1f%%%n",
+                    rank++, u.userId, name, u.totalQuantity, u.quota, u.usagePercent());
+        }
+    }
+
+    /**
+     * Resolves display names for all users in the list.
+     * Falls back to empty map (IDs only) if config or API is unavailable.
+     */
+    static Map<String, String> resolveNames(List<UserUsage> users) {
+        try {
+            AppConfig config = AppConfig.load();
+            GitHubClient client = new GitHubClient(config);
+            List<String> ids = users.stream().map(u -> u.userId).toList();
+            return UserNameCache.resolveNames(ids, client);
+        } catch (Exception e) {
+            System.err.println("Warning: could not resolve user names: " + e.getMessage());
+            return Map.of();
         }
     }
 
