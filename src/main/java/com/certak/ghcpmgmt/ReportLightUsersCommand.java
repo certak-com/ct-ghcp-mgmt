@@ -34,10 +34,11 @@ public class ReportLightUsersCommand implements Callable<Integer> {
                     .toList();
 
             Map<String, String> names = CopilotReportUtils.resolveNames(light);
+            Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
             System.out.println();
             System.out.printf("Light users below %.0f%% monthly quota usage:%n", belowPercent);
             System.out.println();
-            CopilotReportUtils.printTable(light, names);
+            CopilotReportUtils.printTable(light, names, budgets);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

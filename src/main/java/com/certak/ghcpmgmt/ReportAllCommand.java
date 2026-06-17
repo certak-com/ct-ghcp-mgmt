@@ -24,8 +24,9 @@ public class ReportAllCommand implements Callable<Integer> {
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
             Map<String, String> names = CopilotReportUtils.resolveNames(users);
+            Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
             System.out.println();
-            CopilotReportUtils.printTable(users, names);
+            CopilotReportUtils.printTable(users, names, budgets);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
