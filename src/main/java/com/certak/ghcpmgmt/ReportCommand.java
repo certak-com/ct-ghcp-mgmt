@@ -5,14 +5,14 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
 /**
- * Group for billing-related commands.
+ * Group for Copilot usage report analysis commands.
  */
 @CommandLine.Command(
-        name = "billing",
-        description = "Billing-related commands",
+        name = "report",
+        description = "Analyse a downloaded Copilot usage report",
         mixinStandardHelpOptions = true,
-        subcommands = {DownloadCopilotUsageCommand.class, ReportCommand.class})
-public class BillingCommand implements Runnable {
+        subcommands = {ReportAllCommand.class, ReportApproachingCommand.class, ReportLightUsersCommand.class})
+public class ReportCommand implements Runnable {
 
     @Spec
     private CommandSpec spec;
