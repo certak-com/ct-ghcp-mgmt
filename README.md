@@ -46,16 +46,61 @@ ghcp-mgmt.bat user me    # Windows
 
 Place a `.ghcp-mgmt.properties` file in the project directory:
 
-| Property    | Required | Default              | Description              |
-|-------------|----------|----------------------|--------------------------|
-| `token`     | yes      | —                    | GitHub personal access token |
-| `baseUrl`   | no       | `https://api.github.com` | API base URL (use for GitHub Enterprise) |
-| `org`       | no       | —                    | Organization name (for org-scoped commands) |
+| Property             | Required | Default                  | Description                                   |
+|----------------------|----------|--------------------------|-----------------------------------------------|
+| `github.token`       | yes      | —                        | GitHub personal access token                  |
+| `github.base-url`    | no       | `https://api.github.com` | API base URL (use for GitHub Enterprise)      |
+| `github.enterprise`  | no       | —                        | Enterprise slug (required for billing commands) |
+| `github.org`         | no       | —                        | Organisation name (for org-scoped commands)   |
 
 ## Usage
 
 ```
-ghcp-mgmt                    Show this help
-ghcp-mgmt user               Show user subcommands
-ghcp-mgmt user me            Get authenticated user
+ghcp-mgmt [COMMAND]
+```
+
+### `user` — User commands
+
+```bash
+# Show authenticated user
+ghcp-mgmt user me
+
+# Look up any GitHub user by username
+ghcp-mgmt user show octocat
+```
+
+### `billing` — Billing commands
+
+#### `billing copilot-usage` — Download Copilot AI credit usage report
+
+Downloads the current month's Copilot AI credit usage report as CSV into the `reports/` directory.
+Requires `github.enterprise` to be set in `.ghcp-mgmt.properties`.
+
+```bash
+# Download report for the current month (skips if a report for today's date range already exists)
+ghcp-mgmt billing copilot-usage
+
+# Force re-download, overwriting any existing report
+ghcp-mgmt billing copilot-usage --overwrite
+```
+
+#### `billing report` — Analyse a downloaded usage report
+
+Reads from the latest CSV in `reports/`. Requires a prior `billing copilot-usage` download.
+
+```bash
+# Show all users ordered by usage (highest to lowest)
+ghcp-mgmt billing report all
+
+# Show users within 10% of their monthly quota (default threshold)
+ghcp-mgmt billing report approaching
+
+# Show users within 25% of their monthly quota
+ghcp-mgmt billing report approaching --within 25
+
+# Show light users below 10% monthly quota usage (default threshold)
+ghcp-mgmt billing report light
+
+# Show light users below 5% monthly quota usage
+ghcp-mgmt billing report light --below 5
 ```
