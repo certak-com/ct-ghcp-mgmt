@@ -23,10 +23,10 @@ public class ReportAllCommand implements Callable<Integer> {
             if (report == null) return 1;
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
-            Map<String, String> names = CopilotReportUtils.resolveNames(users);
+            Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(users);
             Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
             System.out.println();
-            CopilotReportUtils.printTable(users, names, budgets);
+            CopilotReportUtils.printTable(users, userInfos, budgets);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

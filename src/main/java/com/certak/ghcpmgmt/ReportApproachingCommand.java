@@ -34,13 +34,13 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     .filter(u -> u.usagePercent() >= threshold)
                     .toList();
 
-            Map<String, String> names = CopilotReportUtils.resolveNames(approaching);
+            Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(approaching);
             Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
             System.out.println();
             System.out.printf("Users within %.0f%% of their monthly quota (usage >= %.0f%%):%n",
                     withinPercent, threshold);
             System.out.println();
-            CopilotReportUtils.printTable(approaching, names, budgets);
+            CopilotReportUtils.printTable(approaching, userInfos, budgets);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

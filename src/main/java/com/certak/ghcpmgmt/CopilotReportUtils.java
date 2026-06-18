@@ -124,7 +124,7 @@ final class CopilotReportUtils {
                 .toList();
     }
 
-    static void printTable(List<UserUsage> users, Map<String, String> names, Map<String, Integer> budgets) {
+    static void printTable(List<UserUsage> users, Map<String, UserInfo> infos, Map<String, Integer> budgets) {
         if (users.isEmpty()) {
             System.out.println("No users found.");
             return;
@@ -133,35 +133,37 @@ final class CopilotReportUtils {
         boolean hasBudgets = users.stream().anyMatch(u -> budgets.containsKey(u.userId));
 
         if (hasBudgets) {
-            System.out.printf("%-5s  %-10s  %-30s  %13s  %13s  %8s  %16s  %10s%n",
-                    "#", "User ID", "Name", "Credits Used", "Monthly Quota", "Usage %",
+            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %8s  %16s  %10s%n",
+                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "Usage %",
                     "Increased Quota", "Usage %");
-            System.out.println("-".repeat(117));
+            System.out.println("-".repeat(155));
         } else {
-            System.out.printf("%-5s  %-10s  %-30s  %13s  %13s  %8s%n",
-                    "#", "User ID", "Name", "Credits Used", "Monthly Quota", "Usage %");
-            System.out.println("-".repeat(87));
+            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %8s%n",
+                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "Usage %");
+            System.out.println("-".repeat(125));
         }
 
         int rank = 1;
         for (UserUsage u : users) {
-            String name = names.getOrDefault(u.userId, "");
+            UserInfo info = infos.get(u.userId);
+            String name = (info != null) ? info.name() : "";
+            String email = (info != null && info.email() != null) ? info.email() : "";
             if (hasBudgets) {
                 Integer budget = budgets.get(u.userId);
                 if (budget != null) {
                     long increasedQuota = (long) budget * 100;
                     double quotaPct = increasedQuota > 0 ? (u.totalQuantity / increasedQuota) * 100.0 : 0.0;
-                    System.out.printf("%-5d  %-10s  %-30s  %13.2f  %13.0f  %7.1f%%  %15d  %9.1f%%%n",
-                            rank++, u.userId, name, u.totalQuantity, u.quota, u.usagePercent(),
+                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%  %15d  %9.1f%%%n",
+                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(),
                             increasedQuota, quotaPct);
                 } else {
-                    System.out.printf("%-5d  %-10s  %-30s  %13.2f  %13.0f  %7.1f%%  %15s  %10s%n",
-                            rank++, u.userId, name, u.totalQuantity, u.quota, u.usagePercent(),
+                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%  %15s  %10s%n",
+                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(),
                             "-", "-");
                 }
             } else {
-                System.out.printf("%-5d  %-10s  %-30s  %13.2f  %13.0f  %7.1f%%%n",
-                        rank++, u.userId, name, u.totalQuantity, u.quota, u.usagePercent());
+                System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%%n",
+                        rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent());
             }
         }
     }
@@ -212,10 +214,10 @@ final class CopilotReportUtils {
     }
 
     /**
-     * Resolves display names for all users in the list.
+     * Resolves display names and emails for all users in the list.
      * Falls back to empty map (IDs only) if config or API is unavailable.
      */
-    static Map<String, String> resolveNames(List<UserUsage> users) {
+    static Map<String, UserInfo> resolveNames(List<UserUsage> users) {
         try {
             AppConfig config = AppConfig.load();
             GitHubClient client = new GitHubClient(config);

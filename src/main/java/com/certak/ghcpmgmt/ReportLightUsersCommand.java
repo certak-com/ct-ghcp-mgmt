@@ -33,12 +33,12 @@ public class ReportLightUsersCommand implements Callable<Integer> {
                     .filter(u -> u.usagePercent() < belowPercent)
                     .toList();
 
-            Map<String, String> names = CopilotReportUtils.resolveNames(light);
+            Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(light);
             Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
             System.out.println();
             System.out.printf("Light users below %.0f%% monthly quota usage:%n", belowPercent);
             System.out.println();
-            CopilotReportUtils.printTable(light, names, budgets);
+            CopilotReportUtils.printTable(light, userInfos, budgets);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
