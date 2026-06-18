@@ -23,7 +23,7 @@ import java.net.http.HttpResponse;
         version = "ghcp-mgmt 1.0.0",
         description = "GitHub REST API management CLI",
         mixinStandardHelpOptions = true,
-        subcommands = {UserCommand.class, BillingCommand.class})
+        subcommands = {UserCommand.class, BillingCommand.class, BudgetCommand.class})
 public class GhcpMgmtApp implements Runnable {
 
     @Spec

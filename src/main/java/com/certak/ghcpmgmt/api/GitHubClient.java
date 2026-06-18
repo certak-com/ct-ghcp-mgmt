@@ -232,6 +232,75 @@ public class GitHubClient {
         throw new GitHubApiException("Max retries exceeded for " + url);
     }
 
+    /**
+     * Perform a DELETE request to the GitHub API and deserialize the response.
+     */
+    public <T> T delete(String path, Class<T> responseType) throws GitHubApiException {
+        String url = config.getBaseUrl() + path;
+
+        for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
+            System.err.println(attemptLabel + ": DELETE " + url);
+
+            if (attempt == 0) {
+                HttpClients.printProxyInfo(URI.create(url));
+            }
+
+            if (attempt > 0) {
+                long delay = (long) Math.pow(2, attempt);
+                System.err.println("  Waiting " + delay + "s before retry...");
+                try {
+                    Thread.sleep(delay * 1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    System.err.println(attemptLabel + " FAILED: Request interrupted");
+                    ie.printStackTrace();
+                    throw new GitHubApiException("Request interrupted", ie);
+                }
+            }
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + config.getToken())
+                    .header("X-GitHub-Api-Version", API_VERSION)
+                    .header("Accept", "application/vnd.github+json")
+                    .DELETE()
+                    .build();
+
+            try {
+                HttpResponse<String> response = httpClient.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    System.err.println("  Response: " + response.statusCode());
+                    return objectMapper.readValue(response.body(), responseType);
+                }
+
+                System.err.println("  Response: " + response.statusCode());
+
+                if (isRetryable(response.statusCode())) {
+                    System.err.println("  Retryable status code, will retry...");
+                    continue;
+                }
+
+                throw new GitHubApiException(response.statusCode(), response.body());
+
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                System.err.println(attemptLabel + " FAILED: Request interrupted");
+                ie.printStackTrace();
+                throw new GitHubApiException("Request interrupted", ie);
+            } catch (java.io.IOException e) {
+                System.err.println(attemptLabel + " FAILED: " + e.getMessage());
+                e.printStackTrace();
+                throw new GitHubApiException(-1, "Request failed: " + e.getMessage());
+            }
+        }
+
+        System.err.println("FAILED: Max retries exceeded for " + url);
+        throw new GitHubApiException("Max retries exceeded for " + url);
+    }
+
     private boolean isRetryable(int statusCode) {
         return statusCode == 429 || (statusCode >= 500 && statusCode < 600);
     }
