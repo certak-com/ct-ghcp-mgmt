@@ -3,13 +3,11 @@ package com.certak.ghcpmgmt;
 import com.certak.ghcpmgmt.api.GitHubClient;
 import com.certak.ghcpmgmt.config.AppConfig;
 import com.certak.ghcpmgmt.model.Budget;
-import com.certak.ghcpmgmt.model.BudgetsResponse;
 import com.certak.ghcpmgmt.model.DeleteBudgetResponse;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +39,7 @@ public class BudgetUserListCommand implements Callable<Integer> {
 
             GitHubClient client = new GitHubClient(config);
 
-            List<Budget> budgets = fetchAllUserBudgets(client, enterprise);
+            List<Budget> budgets = CopilotReportUtils.fetchAllUserBudgets(client, enterprise);
 
             if (budgets.isEmpty()) {
                 System.out.println("No user-scoped budgets found.");
@@ -80,22 +78,6 @@ public class BudgetUserListCommand implements Callable<Integer> {
             System.err.println("Error: " + e.getMessage());
             return 1;
         }
-    }
-
-    private List<Budget> fetchAllUserBudgets(GitHubClient client, String enterprise) throws Exception {
-        List<Budget> all = new ArrayList<>();
-        int page = 1;
-        while (true) {
-            String path = "/enterprises/" + enterprise
-                    + "/settings/billing/budgets?scope=user&per_page=100&page=" + page;
-            BudgetsResponse response = client.get(path, BudgetsResponse.class);
-            if (response.getBudgets() != null) {
-                all.addAll(response.getBudgets());
-            }
-            if (!Boolean.TRUE.equals(response.getHas_next_page())) break;
-            page++;
-        }
-        return all;
     }
 
     private void printBudgetTable(List<Budget> budgets, Map<String, UserInfo> nameCache) {

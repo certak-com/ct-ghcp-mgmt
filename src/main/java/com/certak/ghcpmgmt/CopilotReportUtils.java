@@ -184,26 +184,10 @@ final class CopilotReportUtils {
 
             GitHubClient client = new GitHubClient(config);
             Map<String, Integer> result = new HashMap<>();
-            int page = 1;
 
-            while (true) {
-                String path = "/enterprises/" + enterprise + "/settings/billing/budgets?per_page=100&page=" + page;
-                BudgetsResponse response = client.get(path, BudgetsResponse.class);
-
-                if (response.getBudgets() != null) {
-                    for (Budget b : response.getBudgets()) {
-                        if ("user".equals(b.getBudget_scope())
-                                && b.getUser() != null && !b.getUser().isBlank()
-                                && b.getBudget_amount() != null) {
-                            result.put(b.getUser(), b.getBudget_amount());
-                        }
-                    }
-                }
-
-                if (Boolean.TRUE.equals(response.getHas_next_page())) {
-                    page++;
-                } else {
-                    break;
+            for (Budget b : fetchAllUserBudgets(client, enterprise)) {
+                if (b.getUser() != null && !b.getUser().isBlank() && b.getBudget_amount() != null) {
+                    result.put(b.getUser(), b.getBudget_amount());
                 }
             }
 
@@ -212,6 +196,25 @@ final class CopilotReportUtils {
             System.err.println("Warning: could not fetch budget info: " + e.getMessage());
             return Map.of();
         }
+    }
+
+    /**
+     * Fetches all user-scoped budgets for the given enterprise (paginated).
+     */
+    static List<Budget> fetchAllUserBudgets(GitHubClient client, String enterprise) throws Exception {
+        List<Budget> all = new ArrayList<>();
+        int page = 1;
+        while (true) {
+            String path = "/enterprises/" + enterprise
+                    + "/settings/billing/budgets?scope=user&per_page=100&page=" + page;
+            BudgetsResponse response = client.get(path, BudgetsResponse.class);
+            if (response.getBudgets() != null) {
+                all.addAll(response.getBudgets());
+            }
+            if (!Boolean.TRUE.equals(response.getHas_next_page())) break;
+            page++;
+        }
+        return all;
     }
 
     /**
