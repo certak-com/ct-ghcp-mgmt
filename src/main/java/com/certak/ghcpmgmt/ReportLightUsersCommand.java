@@ -5,7 +5,9 @@ import picocli.CommandLine;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
  * Show light Copilot users below a specified usage percentage.
@@ -39,10 +41,51 @@ public class ReportLightUsersCommand implements Callable<Integer> {
             System.out.printf("Light users below %.0f%% monthly quota usage:%n", belowPercent);
             System.out.println();
             CopilotReportUtils.printTable(light, userInfos, budgets);
+
+            printNonUsers(users);
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             return 1;
+        }
+    }
+
+    private void printNonUsers(List<UserUsage> allReportUsers) {
+
+        List<String> teamLogins = CopilotReportUtils.fetchCopilotTeamMemberLogins();
+        if (teamLogins.isEmpty()) return;
+
+        Set<String> inReport = allReportUsers.stream()
+                .map(u -> u.userId)
+                .collect(Collectors.toSet());
+
+        List<String> nonUserLogins = teamLogins.stream()
+                .filter(login -> !inReport.contains(login))
+                .sorted()
+                .toList();
+
+        System.out.println();
+        System.out.printf("Complete non-users (%d licensed users with no Copilot activity):%n", nonUserLogins.size());
+
+        if (nonUserLogins.isEmpty()) {
+            System.out.println("  None.");
+            return;
+        }
+
+        Map<String, UserInfo> infos = CopilotReportUtils.resolveNames(
+                nonUserLogins.stream()
+                        .map(l -> new UserUsage(l, 0, 0))
+                        .collect(Collectors.toList())
+        );
+
+        System.out.println();
+        System.out.printf("  %-30s  %-30s  %-40s%n", "Login", "Name", "Email");
+        System.out.println("  " + "-".repeat(104));
+        for (String login : nonUserLogins) {
+            UserInfo info = infos.get(login);
+            String name = (info != null && info.name() != null) ? info.name() : "";
+            String email = (info != null && info.email() != null) ? info.email() : "";
+            System.out.printf("  %-30s  %-30s  %-40s%n", login, name, email);
         }
     }
 }

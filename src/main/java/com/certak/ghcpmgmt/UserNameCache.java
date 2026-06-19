@@ -73,8 +73,8 @@ final class UserNameCache {
         for (String userId : userIds) {
             if (cache.containsKey(userId)) {
                 UserInfo info = cache.get(userId);
-                System.err.println("Name lookup [cached]: " + userId + " -> " + info.name()
-                        + (info.email() != null && !info.email().isBlank() ? " <" + info.email() + ">" : ""));
+                // System.err.println("Name lookup [cached]: " + userId + " -> " + info.name()
+                //         + (info.email() != null && !info.email().isBlank() ? " <" + info.email() + ">" : ""));
                 continue;
             }
 

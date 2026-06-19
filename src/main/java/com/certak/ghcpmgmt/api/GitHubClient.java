@@ -42,7 +42,7 @@ public class GitHubClient {
             System.err.println(attemptLabel + ": GET " + url);
 
             if (attempt == 0) {
-                HttpClients.printProxyInfo(URI.create(url));
+                // HttpClients.printProxyInfo(URI.create(url));
             }
 
             if (attempt > 0) {
@@ -112,7 +112,7 @@ public class GitHubClient {
             System.err.println(attemptLabel + ": POST " + url);
 
             if (attempt == 0) {
-                HttpClients.printProxyInfo(URI.create(url));
+                // HttpClients.printProxyInfo(URI.create(url));
             }
 
             if (attempt > 0) {
@@ -243,7 +243,7 @@ public class GitHubClient {
             System.err.println(attemptLabel + ": DELETE " + url);
 
             if (attempt == 0) {
-                HttpClients.printProxyInfo(URI.create(url));
+                // HttpClients.printProxyInfo(URI.create(url));
             }
 
             if (attempt > 0) {

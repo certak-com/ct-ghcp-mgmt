@@ -4,6 +4,7 @@ import com.certak.ghcpmgmt.api.GitHubClient;
 import com.certak.ghcpmgmt.config.AppConfig;
 import com.certak.ghcpmgmt.model.Budget;
 import com.certak.ghcpmgmt.model.BudgetsResponse;
+import com.certak.ghcpmgmt.model.SimpleUser;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -250,6 +251,42 @@ final class CopilotReportUtils {
             }
         }
         return fields.toArray(new String[0]);
+    }
+
+    /**
+     * Fetches all members of the copilot-users team from the enterprise (paginated).
+     * Returns a list of logins. Falls back to empty list on failure or missing config.
+     */
+    static List<String> fetchCopilotTeamMemberLogins() {
+        try {
+            AppConfig config = AppConfig.load();
+            String enterprise = config.getEnterprise();
+            if (enterprise == null || enterprise.isBlank()) {
+                System.err.println("Warning: github.enterprise not configured — skipping copilot-users team lookup.");
+                return List.of();
+            }
+
+            GitHubClient client = new GitHubClient(config);
+            List<String> logins = new ArrayList<>();
+            int page = 1;
+            System.out.println("Fetching all members.");
+
+            while (true) {
+                String path = "/enterprises/" + enterprise + "/teams/copilot-users/memberships?per_page=100&page=" + page;
+                SimpleUser[] members = client.get(path, SimpleUser[].class);
+                if (members == null || members.length == 0) break;
+                for (SimpleUser m : members) {
+                    if (m.getLogin() != null) logins.add(m.getLogin());
+                }
+                if (members.length < 100) break;
+                page++;
+            }
+
+            return logins;
+        } catch (Exception e) {
+            System.err.println("Warning: could not fetch copilot-users team members: " + e.getMessage());
+            return List.of();
+        }
     }
 
     private static double parseDouble(String s) {
