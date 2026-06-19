@@ -171,9 +171,9 @@ final class CopilotReportUtils {
 
     /**
      * Fetches all user-scoped budgets from the enterprise billing API (paginated).
-     * Returns a map of user login -> budget_amount. Falls back to empty map on failure.
+     * Returns a map of user login -> Budget object. Falls back to empty map on failure.
      */
-    static Map<String, Integer> fetchUserBudgets() {
+    static Map<String, Budget> fetchUserBudgetObjects() {
         try {
             AppConfig config = AppConfig.load();
             String enterprise = config.getEnterprise();
@@ -183,11 +183,11 @@ final class CopilotReportUtils {
             }
 
             GitHubClient client = new GitHubClient(config);
-            Map<String, Integer> result = new HashMap<>();
+            Map<String, Budget> result = new HashMap<>();
 
             for (Budget b : fetchAllUserBudgets(client, enterprise)) {
-                if (b.getUser() != null && !b.getUser().isBlank() && b.getBudget_amount() != null) {
-                    result.put(b.getUser(), b.getBudget_amount());
+                if (b.getUser() != null && !b.getUser().isBlank()) {
+                    result.put(b.getUser(), b);
                 }
             }
 
@@ -196,6 +196,20 @@ final class CopilotReportUtils {
             System.err.println("Warning: could not fetch budget info: " + e.getMessage());
             return Map.of();
         }
+    }
+
+    /**
+     * Fetches all user-scoped budgets from the enterprise billing API (paginated).
+     * Returns a map of user login -> budget_amount. Falls back to empty map on failure.
+     */
+    static Map<String, Integer> fetchUserBudgets() {
+        Map<String, Integer> result = new HashMap<>();
+        for (Map.Entry<String, Budget> entry : fetchUserBudgetObjects().entrySet()) {
+            if (entry.getValue().getBudget_amount() != null) {
+                result.put(entry.getKey(), entry.getValue().getBudget_amount());
+            }
+        }
+        return result;
     }
 
     /**

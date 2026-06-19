@@ -1,14 +1,22 @@
 package com.certak.ghcpmgmt;
 
+import com.certak.ghcpmgmt.api.GitHubClient;
+import com.certak.ghcpmgmt.config.AppConfig;
+import com.certak.ghcpmgmt.model.Budget;
+import com.certak.ghcpmgmt.model.BudgetOperationResponse;
+import com.certak.ghcpmgmt.model.User;
 import picocli.CommandLine;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
- * Show Copilot users approaching their monthly quota limit.
+ * Show Copilot users approaching their monthly quota limit, with optional budget creation/update.
  */
 @CommandLine.Command(
         name = "approaching",
@@ -35,16 +43,96 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     .toList();
 
             Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(approaching);
-            Map<String, Integer> budgets = CopilotReportUtils.fetchUserBudgets();
+            Map<String, Budget> budgetObjects = CopilotReportUtils.fetchUserBudgetObjects();
+            Map<String, Integer> budgets = budgetObjects.entrySet().stream()
+                    .filter(e -> e.getValue().getBudget_amount() != null)
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getBudget_amount()));
+
             System.out.println();
             System.out.printf("Users within %.0f%% of their monthly quota (usage >= %.0f%%):%n",
                     withinPercent, threshold);
             System.out.println();
             CopilotReportUtils.printTable(approaching, userInfos, budgets);
+
+            if (approaching.isEmpty()) return 0;
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            System.out.println();
+            System.out.println("Budget actions:");
+            System.out.println("  1) Create budgets for users in this list without a budget");
+            System.out.println("  2) Create or update budgets for all users in this list");
+            System.out.println("  (press Enter to skip)");
+            System.out.print("Choice: ");
+            System.out.flush();
+
+            String choice = reader.readLine();
+            if (choice == null || choice.isBlank()) return 0;
+            choice = choice.trim();
+            if (!choice.equals("1") && !choice.equals("2")) return 0;
+
+            System.out.print("Budget amount in dollars: ");
+            System.out.flush();
+            String amountStr = reader.readLine();
+            if (amountStr == null || amountStr.isBlank()) {
+                System.err.println("No amount provided.");
+                return 1;
+            }
+            int budgetAmount;
+            try {
+                budgetAmount = Integer.parseInt(amountStr.trim());
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid amount: " + amountStr);
+                return 1;
+            }
+
+            AppConfig config = AppConfig.load();
+            String enterprise = config.getEnterprise();
+            if (enterprise == null || enterprise.isBlank()) {
+                System.err.println("Error: github.enterprise not configured.");
+                return 1;
+            }
+
+            GitHubClient client = new GitHubClient(config);
+            String myLogin = client.get("/user", User.class).getLogin();
+
+            System.out.println();
+            boolean createOnly = choice.equals("1");
+
+            for (UserUsage u : approaching) {
+                Budget existing = budgetObjects.get(u.userId);
+                boolean hasBudget = existing != null;
+
+                if (createOnly && hasBudget) continue;
+
+                String body = buildBudgetBody(budgetAmount, u.userId, myLogin);
+
+                if (!hasBudget) {
+                    System.out.printf("Creating budget of $%d for %s...%n", budgetAmount, u.userId);
+                    String path = "/enterprises/" + enterprise + "/settings/billing/budgets";
+                    BudgetOperationResponse resp = client.post(path, body, BudgetOperationResponse.class);
+                    System.out.println("  -> " + resp.getMessage());
+                } else {
+                    System.out.printf("Updating budget of $%d for %s (ID: %s)...%n", budgetAmount, u.userId, existing.getId());
+                    String path = "/enterprises/" + enterprise + "/settings/billing/budgets/" + existing.getId();
+                    BudgetOperationResponse resp = client.patch(path, body, BudgetOperationResponse.class);
+                    System.out.println("  -> " + resp.getMessage());
+                }
+            }
+
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             return 1;
         }
+    }
+
+    private static String buildBudgetBody(int budgetAmount, String targetUser, String alertRecipient) {
+        return String.format(
+                "{\"budget_amount\":%d,\"user\":\"%s\",\"prevent_further_usage\":true," +
+                "\"budget_scope\":\"user\",\"budget_entity_name\":\"%s\"," +
+                "\"budget_type\":\"BundlePricing\",\"budget_product_sku\":\"ai_credits\"," +
+                "\"budget_alerting\":{\"will_alert\":true,\"alert_recipients\":[\"%s\"]}}",
+                budgetAmount, targetUser, targetUser, alertRecipient);
     }
 }

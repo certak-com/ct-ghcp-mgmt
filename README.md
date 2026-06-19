@@ -104,3 +104,16 @@ ghcp-mgmt billing report light
 # Show light users below 5% monthly quota usage
 ghcp-mgmt billing report light --below 5
 ```
+
+### `budget` — Budget management commands
+
+Requires `github.enterprise` to be set in `.ghcp-mgmt.properties`.
+
+#### `budget user-list` — List and optionally delete user-scoped budgets
+
+Lists all user-scoped budgets for the enterprise sorted highest to lowest. After displaying the table, prompts interactively whether to delete all listed budgets.
+
+```bash
+# List all user-scoped budgets and prompt to delete
+ghcp-mgmt budget user-list
+```
