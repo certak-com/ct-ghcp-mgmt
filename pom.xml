@@ -82,6 +82,62 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.6.5</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jpackage</goal>
+                        </goals>
+                        <configuration>
+                            <name>ghcp-mgmt</name>
+                            <appVersion>${project.version}</appVersion>
+                            <vendor>certak</vendor>
+                            <destination>${project.build.directory}/dist</destination>
+                            <input>${project.build.directory}</input>
+                            <mainJar>${project.artifactId}-${project.version}.jar</mainJar>
+                            <mainClass>com.certak.ghcpmgmt.GhcpMgmtApp</mainClass>
+                            <type>APP_IMAGE</type>
+                            <winConsole>true</winConsole>
+                            <javaOptions>
+                                <option>-Dfile.encoding=UTF-8</option>
+                            </javaOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-dist-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/dist/ghcp-mgmt/certs"/>
+                                <copy todir="${project.build.directory}/dist/ghcp-mgmt/certs" failonerror="false">
+                                    <fileset dir="${project.basedir}/certs"/>
+                                </copy>
+                                <copy file="${project.basedir}/.ghcp-mgmt.properties"
+                                      todir="${project.build.directory}/dist/ghcp-mgmt"
+                                      failonerror="false"/>
+                                <mkdir dir="${project.build.directory}/dist/ghcp-mgmt/mappings"/>
+                                <copy file="${project.basedir}/mappings/mappings.txt"
+                                      todir="${project.build.directory}/dist/ghcp-mgmt/mappings"
+                                      failonerror="false"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

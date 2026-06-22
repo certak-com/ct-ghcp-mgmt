@@ -1,6 +1,7 @@
 package com.certak.ghcpmgmt;
 
 import com.certak.ghcpmgmt.api.HttpClients;
+import com.certak.ghcpmgmt.config.CertLoader;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -36,6 +37,7 @@ public class GhcpMgmtApp implements Runnable {
 
     public static void main(String[] args) {
         System.setProperty("java.net.useSystemProxies", "true");
+        CertLoader.installFromHome();
         checkConnectivity();
         int exitCode = new CommandLine(new GhcpMgmtApp()).execute(args);
         System.exit(exitCode);

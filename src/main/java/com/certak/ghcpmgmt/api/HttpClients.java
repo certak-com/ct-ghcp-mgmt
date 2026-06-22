@@ -1,5 +1,6 @@
 package com.certak.ghcpmgmt.api;
 
+import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ProxySelector;
@@ -16,13 +17,25 @@ public final class HttpClients {
 
     private HttpClients() {}
 
-    private static final HttpClient INSTANCE = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .proxy(ProxySelector.getDefault())
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private static volatile HttpClient INSTANCE;
 
     public static HttpClient shared() {
+        if (INSTANCE == null) {
+            synchronized (HttpClients.class) {
+                if (INSTANCE == null) {
+                    try {
+                        INSTANCE = HttpClient.newBuilder()
+                                .connectTimeout(Duration.ofSeconds(10))
+                                .proxy(ProxySelector.getDefault())
+                                .followRedirects(HttpClient.Redirect.NORMAL)
+                                .sslContext(SSLContext.getDefault())
+                                .build();
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to build HttpClient", e);
+                    }
+                }
+            }
+        }
         return INSTANCE;
     }
 

@@ -29,7 +29,7 @@ public class AppConfig {
 
         if (!Files.exists(propertiesPath)) {
             throw new IOException("Config file not found: " + propertiesPath
-                    + "\nPlease create .ghcp-mgmt.properties in the project directory.");
+                    + "\nPlease create .ghcp-mgmt.properties in the working directory.");
         }
 
         try (InputStream is = Files.newInputStream(propertiesPath)) {
