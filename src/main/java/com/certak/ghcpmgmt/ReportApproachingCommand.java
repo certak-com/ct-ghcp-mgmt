@@ -30,10 +30,33 @@ public class ReportApproachingCommand implements Callable<Integer> {
             defaultValue = "10")
     private double withinPercent;
 
+    @CommandLine.Option(
+            names = {"--report"},
+            description = "Path to the CSV usage report file (skips interactive selection)",
+            paramLabel = "<file>")
+    private Path reportFile;
+
+    @CommandLine.Option(
+            names = {"--budget-action"},
+            description = "Budget action to perform without prompting: 1 = create missing budgets, 2 = create or update all",
+            paramLabel = "<1|2>")
+    private Integer budgetAction;
+
+    @CommandLine.Option(
+            names = {"--budget-amount"},
+            description = "Budget amount in dollars (skips interactive prompt)",
+            paramLabel = "<dollars>")
+    private Integer budgetAmount;
+
+    @CommandLine.Option(
+            names = {"--yes", "-y"},
+            description = "Auto-confirm when new budget is less than the existing budget")
+    private boolean yes;
+
     @Override
     public Integer call() {
         try {
-            Path report = CopilotReportUtils.selectReport();
+            Path report = CopilotReportUtils.selectReport(reportFile);
             if (report == null) return 1;
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
@@ -58,32 +81,40 @@ public class ReportApproachingCommand implements Callable<Integer> {
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-            System.out.println();
-            System.out.println("Budget actions:");
-            System.out.println("  1) Create budgets for users in this list without a budget");
-            System.out.println("  2) Create or update budgets for all users in this list");
-            System.out.println("  (press Enter to skip)");
-            System.out.print("Choice: ");
-            System.out.flush();
-
-            String choice = reader.readLine();
+            String choice;
+            if (budgetAction != null) {
+                choice = String.valueOf(budgetAction);
+            } else {
+                System.out.println();
+                System.out.println("Budget actions:");
+                System.out.println("  1) Create budgets for users in this list without a budget");
+                System.out.println("  2) Create or update budgets for all users in this list");
+                System.out.println("  (press Enter to skip)");
+                System.out.print("Choice: ");
+                System.out.flush();
+                choice = reader.readLine();
+            }
             if (choice == null || choice.isBlank()) return 0;
             choice = choice.trim();
             if (!choice.equals("1") && !choice.equals("2")) return 0;
 
-            System.out.print("Budget amount in dollars: ");
-            System.out.flush();
-            String amountStr = reader.readLine();
-            if (amountStr == null || amountStr.isBlank()) {
-                System.err.println("No amount provided.");
-                return 1;
-            }
-            int budgetAmount;
-            try {
-                budgetAmount = Integer.parseInt(amountStr.trim());
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid amount: " + amountStr);
-                return 1;
+            int resolvedAmount;
+            if (budgetAmount != null) {
+                resolvedAmount = budgetAmount;
+            } else {
+                System.out.print("Budget amount in dollars: ");
+                System.out.flush();
+                String amountStr = reader.readLine();
+                if (amountStr == null || amountStr.isBlank()) {
+                    System.err.println("No amount provided.");
+                    return 1;
+                }
+                try {
+                    resolvedAmount = Integer.parseInt(amountStr.trim());
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid amount: " + amountStr);
+                    return 1;
+                }
             }
 
             AppConfig config = AppConfig.load();
@@ -105,26 +136,31 @@ public class ReportApproachingCommand implements Callable<Integer> {
 
                 if (createOnly && hasBudget) continue;
 
-                String body = buildBudgetBody(budgetAmount, u.userId, myLogin);
+                String body = buildBudgetBody(resolvedAmount, u.userId, myLogin);
 
                 if (!hasBudget) {
-                    System.out.printf("Creating budget of $%d for %s...%n", budgetAmount, u.userId);
+                    System.out.printf("Creating budget of $%d for %s...%n", resolvedAmount, u.userId);
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets";
                     BudgetOperationResponse resp = client.post(path, body, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());
                 } else {
                     Integer existingAmount = existing.getBudget_amount();
-                    if (existingAmount != null && budgetAmount < existingAmount) {
-                        System.out.printf("  Warning: new budget $%d is less than existing budget $%d for %s. Confirm? (y/N): ",
-                                budgetAmount, existingAmount, u.userId);
-                        System.out.flush();
-                        String confirm = reader.readLine();
-                        if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
-                            System.out.printf("  Skipped %s.%n", u.userId);
-                            continue;
+                    if (existingAmount != null && resolvedAmount < existingAmount) {
+                        if (yes) {
+                            System.out.printf("  Warning: new budget $%d is less than existing budget $%d for %s. Auto-confirmed (--yes).%n",
+                                    resolvedAmount, existingAmount, u.userId);
+                        } else {
+                            System.out.printf("  Warning: new budget $%d is less than existing budget $%d for %s. Confirm? (y/N): ",
+                                    resolvedAmount, existingAmount, u.userId);
+                            System.out.flush();
+                            String confirm = reader.readLine();
+                            if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+                                System.out.printf("  Skipped %s.%n", u.userId);
+                                continue;
+                            }
                         }
                     }
-                    System.out.printf("Updating budget of $%d for %s (ID: %s)...%n", budgetAmount, u.userId, existing.getId());
+                    System.out.printf("Updating budget of $%d for %s (ID: %s)...%n", resolvedAmount, u.userId, existing.getId());
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets/" + existing.getId();
                     BudgetOperationResponse resp = client.patch(path, body, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());

@@ -27,6 +27,11 @@ import java.util.stream.Collectors;
         mixinStandardHelpOptions = true)
 public class BudgetUserListCommand implements Callable<Integer> {
 
+    @CommandLine.Option(
+            names = {"--yes", "-y"},
+            description = "Skip confirmation prompt and delete all user budgets immediately")
+    private boolean yes;
+
     @Override
     public Integer call() {
         try {
@@ -61,14 +66,18 @@ public class BudgetUserListCommand implements Callable<Integer> {
             printBudgetTable(budgets, nameCache);
 
             System.out.println();
-            System.out.print("Delete all " + budgets.size() + " user budget(s)? [y/N]: ");
-            System.out.flush();
+            if (yes) {
+                System.out.println("Deleting all " + budgets.size() + " user budget(s) (--yes specified)...");
+            } else {
+                System.out.print("Delete all " + budgets.size() + " user budget(s)? [y/N]: ");
+                System.out.flush();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            String answer = reader.readLine();
-            if (answer == null || !answer.trim().equalsIgnoreCase("y")) {
-                System.out.println("No budgets deleted.");
-                return 0;
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                String answer = reader.readLine();
+                if (answer == null || !answer.trim().equalsIgnoreCase("y")) {
+                    System.out.println("No budgets deleted.");
+                    return 0;
+                }
             }
 
             deleteAllBudgets(client, enterprise, budgets);

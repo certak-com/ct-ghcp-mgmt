@@ -16,10 +16,16 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true)
 public class ReportAllCommand implements Callable<Integer> {
 
+    @CommandLine.Option(
+            names = {"--report"},
+            description = "Path to the CSV usage report file (skips interactive selection)",
+            paramLabel = "<file>")
+    private Path reportFile;
+
     @Override
     public Integer call() {
         try {
-            Path report = CopilotReportUtils.selectReport();
+            Path report = CopilotReportUtils.selectReport(reportFile);
             if (report == null) return 1;
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);

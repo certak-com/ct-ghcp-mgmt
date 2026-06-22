@@ -29,10 +29,20 @@ final class CopilotReportUtils {
 
     /**
      * Lists CSV files in the reports directory (newest first), prompts the user to pick one.
+     * If {@code reportFile} is non-null, it is used directly without prompting.
      *
+     * @param reportFile optional path override; if null the user is prompted interactively
      * @return the selected Path, or null if unavailable or selection fails
      */
-    static Path selectReport() throws IOException {
+    static Path selectReport(Path reportFile) throws IOException {
+        if (reportFile != null) {
+            if (!Files.exists(reportFile)) {
+                System.err.println("Report file not found: " + reportFile);
+                return null;
+            }
+            return reportFile;
+        }
+
         if (!Files.exists(REPORTS_DIR)) {
             System.err.println("No reports directory found. Run 'billing copilot-usage' to download a report first.");
             return null;
