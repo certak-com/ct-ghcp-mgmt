@@ -316,6 +316,47 @@ final class CopilotReportUtils {
         }
     }
 
+    /**
+     * Prints licensed team members who have no activity in the given report.
+     */
+    static void printNonUsers(List<UserUsage> allReportUsers) {
+        List<String> teamLogins = fetchCopilotTeamMemberLogins();
+        if (teamLogins.isEmpty()) return;
+
+        Set<String> inReport = allReportUsers.stream()
+                .map(u -> u.userId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<String> nonUserLogins = teamLogins.stream()
+                .filter(login -> !inReport.contains(login))
+                .sorted()
+                .toList();
+
+        System.out.println();
+        System.out.printf("Complete non-users (%d licensed users with no Copilot activity):%n", nonUserLogins.size());
+
+        if (nonUserLogins.isEmpty()) {
+            System.out.println("  None.");
+            return;
+        }
+
+        Map<String, UserInfo> infos = resolveNames(
+                nonUserLogins.stream()
+                        .map(l -> new UserUsage(l, 0, 0))
+                        .collect(java.util.stream.Collectors.toList())
+        );
+
+        System.out.println();
+        System.out.printf("  %-30s  %-30s  %-40s%n", "Login", "Name", "Email");
+        System.out.println("  " + "-".repeat(104));
+        for (String login : nonUserLogins) {
+            UserInfo info = infos.get(login);
+            String name = (info != null && info.name() != null) ? info.name() : "";
+            String email = (info != null && info.email() != null) ? info.email() : "";
+            System.out.printf("  %-30s  %-30s  %-40s%n", login, name, email);
+        }
+    }
+
     private static double parseDouble(String s) {
         try {
             return (s == null || s.isBlank()) ? 0.0 : Double.parseDouble(s);
