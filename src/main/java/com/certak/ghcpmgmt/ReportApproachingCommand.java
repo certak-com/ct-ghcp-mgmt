@@ -113,6 +113,17 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     BudgetOperationResponse resp = client.post(path, body, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());
                 } else {
+                    Integer existingAmount = existing.getBudget_amount();
+                    if (existingAmount != null && budgetAmount < existingAmount) {
+                        System.out.printf("  Warning: new budget $%d is less than existing budget $%d for %s. Confirm? (y/N): ",
+                                budgetAmount, existingAmount, u.userId);
+                        System.out.flush();
+                        String confirm = reader.readLine();
+                        if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+                            System.out.printf("  Skipped %s.%n", u.userId);
+                            continue;
+                        }
+                    }
                     System.out.printf("Updating budget of $%d for %s (ID: %s)...%n", budgetAmount, u.userId, existing.getId());
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets/" + existing.getId();
                     BudgetOperationResponse resp = client.patch(path, body, BudgetOperationResponse.class);
