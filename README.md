@@ -32,7 +32,13 @@ mvn compile exec:java "-Dexec.args=user me"
 mvn package
 ```
 
-Run the wrapper scripts from the `target/dist/ghcp-mgmt/` directory (or anywhere after adding it to `PATH`):
+After packaging, an archive is created in `target/dist/` for distribution:
+
+- **Windows:** `ghcp-mgmt-1.0.0-windows.zip`
+- **Linux:** `ghcp-mgmt-1.0.0-linux.tar.gz`
+- **macOS:** `ghcp-mgmt-1.0.0-macos.tar.gz`
+
+Extract the archive and run the wrapper scripts from the `ghcp-mgmt/` directory (or anywhere after adding it to `PATH`):
 
 ```bash
 ./ghcp-mgmt user me   # Linux/macOS

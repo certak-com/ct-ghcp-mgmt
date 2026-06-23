@@ -115,6 +115,18 @@
                 <version>3.1.0</version>
                 <executions>
                     <execution>
+                        <id>clean-dist</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete dir="${project.build.directory}/dist" quiet="true"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>copy-dist-resources</id>
                         <phase>package</phase>
                         <goals>
@@ -133,6 +145,7 @@
                                 <copy file="${project.basedir}/mappings/mappings.txt"
                                       todir="${project.build.directory}/dist/ghcp-mgmt/mappings"
                                       failonerror="false"/>
+
                             </target>
                         </configuration>
                     </execution>
@@ -140,4 +153,93 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>archive-windows</id>
+            <activation>
+                <os><family>windows</family></os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>archive-dist-windows</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <zip destfile="${project.build.directory}/dist/${project.artifactId}-${project.version}-windows.zip"
+                                             basedir="${project.build.directory}/dist"
+                                             includes="ghcp-mgmt/**"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>archive-unix</id>
+            <activation>
+                <os><family>unix</family></os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>archive-dist-unix</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <tar destfile="${project.build.directory}/dist/${project.artifactId}-${project.version}-linux.tar.gz"
+                                             compression="gzip">
+                                            <tarfileset dir="${project.build.directory}/dist" includes="ghcp-mgmt/**" filemode="755"/>
+                                        </tar>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>archive-mac</id>
+            <activation>
+                <os><family>mac</family></os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>archive-dist-mac</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <tar destfile="${project.build.directory}/dist/${project.artifactId}-${project.version}-macos.tar.gz"
+                                             compression="gzip">
+                                            <tarfileset dir="${project.build.directory}/dist" includes="ghcp-mgmt/**" filemode="755"/>
+                                        </tar>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
