@@ -7,9 +7,14 @@ import com.certak.ghcpmgmt.model.BudgetOperationResponse;
 import com.certak.ghcpmgmt.model.User;
 import picocli.CommandLine;
 
+import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -130,6 +135,8 @@ public class ReportApproachingCommand implements Callable<Integer> {
             System.out.println();
             boolean createOnly = choice.equals("1");
 
+            List<UserUsage> processed = new ArrayList<>();
+
             for (UserUsage u : approaching) {
                 Budget existing = budgetObjects.get(u.userId);
                 boolean hasBudget = existing != null;
@@ -143,6 +150,7 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets";
                     BudgetOperationResponse resp = client.post(path, body, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());
+                    processed.add(u);
                 } else {
                     Integer existingAmount = existing.getBudget_amount();
                     if (existingAmount != null && resolvedAmount < existingAmount) {
@@ -164,13 +172,80 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets/" + existing.getId();
                     BudgetOperationResponse resp = client.patch(path, body, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());
+                    processed.add(u);
                 }
+            }
+
+            if (!processed.isEmpty()) {
+                writeBudgetUpdateSummary(processed, userInfos, resolvedAmount);
             }
 
             return 0;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             return 1;
+        }
+    }
+
+    private void writeBudgetUpdateSummary(List<UserUsage> processed, Map<String, UserInfo> userInfos, int budgetAmount) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String fileTimestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+
+        List<String> emails = processed.stream()
+                .map(u -> {
+                    UserInfo info = userInfos.get(u.userId);
+                    return (info != null && info.email() != null && !info.email().isBlank())
+                            ? info.email() : null;
+                })
+                .filter(e -> e != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        String emailList = String.join(":", emails);
+
+        StringBuilder summary = new StringBuilder();
+        summary.append("Subject: GitHub Copilot Budget Update — ").append(timestamp).append("\n\n");
+        summary.append("The following ").append(processed.size())
+               .append(" user budget(s) were created/updated to $").append(budgetAmount).append(":\n\n");
+
+        for (UserUsage u : processed) {
+            UserInfo info = userInfos.get(u.userId);
+            String name = (info != null && info.name() != null) ? info.name() : "";
+            String email = (info != null && info.email() != null) ? info.email() : "(no email)";
+            summary.append(String.format("  %-20s  %-30s  %s%n", u.userId, name, email));
+        }
+
+        summary.append("\nEmail list (colon-separated):\n").append(emailList).append("\n");
+
+        System.out.println();
+        System.out.println("=== Budget Update Summary ===");
+        System.out.println("Email list: " + emailList);
+        System.out.println(summary);
+
+        try {
+            Path reportsDir = CopilotReportUtils.REPORTS_DIR;
+            Files.createDirectories(reportsDir);
+            Path summaryFile = reportsDir.resolve("budget-update-" + fileTimestamp + ".txt");
+            Files.writeString(summaryFile, summary.toString());
+            Path absolutePath = summaryFile.toAbsolutePath();
+            System.out.println("Summary written to: " + absolutePath);
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(absolutePath.toFile());
+            } else {
+                String os = System.getProperty("os.name", "").toLowerCase();
+                ProcessBuilder pb;
+                if (os.contains("win")) {
+                    pb = new ProcessBuilder("notepad.exe", absolutePath.toString());
+                } else if (os.contains("mac")) {
+                    pb = new ProcessBuilder("open", absolutePath.toString());
+                } else {
+                    pb = new ProcessBuilder("xdg-open", absolutePath.toString());
+                }
+                pb.start();
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: could not write or open summary file: " + e.getMessage());
         }
     }
 
