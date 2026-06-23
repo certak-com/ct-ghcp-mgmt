@@ -36,7 +36,7 @@ public class ReportLightUsersCommand implements Callable<Integer> {
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
             List<UserUsage> light = users.stream()
-                    .filter(u -> u.usagePercent() < belowPercent)
+                    .filter(u -> u.usagePercent(null) < belowPercent)
                     .toList();
 
             Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(light);

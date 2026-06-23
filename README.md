@@ -106,6 +106,8 @@ ghcp-mgmt billing report all
 ghcp-mgmt billing report all --report reports/usage-2026-06-01_2026-06-30.csv
 
 # Show users within 10% of their monthly quota (default threshold)
+# If a user has a budget set, their effective quota is the budget amount (dollars × 100 credits).
+# Budget-aware usage percent is used for both filtering and ordering; falls back to monthly quota if no budget exists.
 ghcp-mgmt billing report approaching
 
 # Show users within 25% of their monthly quota

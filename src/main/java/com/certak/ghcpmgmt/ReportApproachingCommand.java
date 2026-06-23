@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -66,15 +67,18 @@ public class ReportApproachingCommand implements Callable<Integer> {
 
             List<UserUsage> users = CopilotReportUtils.parseReport(report);
             double threshold = 100.0 - withinPercent;
-            List<UserUsage> approaching = users.stream()
-                    .filter(u -> u.usagePercent() >= threshold)
-                    .toList();
 
-            Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(approaching);
             Map<String, Budget> budgetObjects = CopilotReportUtils.fetchUserBudgetObjects();
             Map<String, Integer> budgets = budgetObjects.entrySet().stream()
                     .filter(e -> e.getValue().getBudget_amount() != null)
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getBudget_amount()));
+
+            List<UserUsage> approaching = users.stream()
+                    .filter(u -> u.usagePercent(budgets.get(u.userId)) >= threshold)
+                    .sorted(Comparator.comparingDouble((UserUsage u) -> u.usagePercent(budgets.get(u.userId))).reversed())
+                    .toList();
+
+            Map<String, UserInfo> userInfos = CopilotReportUtils.resolveNames(approaching);
 
             System.out.println();
             System.out.printf("Users within %.0f%% of their monthly quota (usage >= %.0f%%):%n",
@@ -170,7 +174,8 @@ public class ReportApproachingCommand implements Callable<Integer> {
                     }
                     System.out.printf("Updating budget of $%d for %s (ID: %s)...%n", resolvedAmount, u.userId, existing.getId());
                     String path = "/enterprises/" + enterprise + "/settings/billing/budgets/" + existing.getId();
-                    BudgetOperationResponse resp = client.patch(path, body, BudgetOperationResponse.class);
+                    String updateBody = buildBudgetUpdateBody(resolvedAmount, u.userId, myLogin);
+                    BudgetOperationResponse resp = client.patch(path, updateBody, BudgetOperationResponse.class);
                     System.out.println("  -> " + resp.getMessage());
                     processed.add(u);
                 }
@@ -201,7 +206,7 @@ public class ReportApproachingCommand implements Callable<Integer> {
                 .distinct()
                 .collect(Collectors.toList());
 
-        String emailList = String.join(":", emails);
+        String emailList = String.join("; ", emails);
 
         StringBuilder summary = new StringBuilder();
         summary.append("Subject: GitHub Copilot Budget Update — ").append(timestamp).append("\n\n");
@@ -214,8 +219,6 @@ public class ReportApproachingCommand implements Callable<Integer> {
             String email = (info != null && info.email() != null) ? info.email() : "(no email)";
             summary.append(String.format("  %-20s  %-30s  %s%n", u.userId, name, email));
         }
-
-        summary.append("\nEmail list (colon-separated):\n").append(emailList).append("\n");
 
         System.out.println();
         System.out.println("=== Budget Update Summary ===");
@@ -256,5 +259,12 @@ public class ReportApproachingCommand implements Callable<Integer> {
                 "\"budget_type\":\"BundlePricing\",\"budget_product_sku\":\"ai_credits\"," +
                 "\"budget_alerting\":{\"will_alert\":true,\"alert_recipients\":[\"%s\"]}}",
                 budgetAmount, targetUser, targetUser, alertRecipient);
+    }
+
+    private static String buildBudgetUpdateBody(int budgetAmount, String targetUser, String alertRecipient) {
+        return String.format(
+                "{\"budget_amount\":%d,\"user\":\"%s\",\"prevent_further_usage\":true," +
+                "\"budget_alerting\":{\"will_alert\":true,\"alert_recipients\":[\"%s\"]}}",
+                budgetAmount, targetUser, alertRecipient);
     }
 }

@@ -15,7 +15,17 @@ class UserUsage {
         this.quota = quota;
     }
 
-    double usagePercent() {
+    private double usagePercent() {
         return quota > 0 ? (totalQuantity / quota) * 100.0 : 0.0;
+    }
+
+    /**
+     * Usage percent against the budget if one exists (budget dollars × 100 = credits), otherwise falls back to quota.
+     */
+    double usagePercent(Integer budgetAmountDollars) {
+        if (budgetAmountDollars != null && budgetAmountDollars > 0) {
+            return (totalQuantity / (budgetAmountDollars * 100.0)) * 100.0;
+        }
+        return usagePercent();
     }
 }

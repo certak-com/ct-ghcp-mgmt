@@ -131,7 +131,7 @@ final class CopilotReportUtils {
 
         return totals.entrySet().stream()
                 .map(e -> new UserUsage(e.getKey(), e.getValue()[0], e.getValue()[1]))
-                .sorted(Comparator.comparingDouble(UserUsage::usagePercent).reversed())
+                .sorted(Comparator.comparingDouble((UserUsage u) -> u.usagePercent(null)).reversed())
                 .toList();
     }
 
@@ -144,14 +144,14 @@ final class CopilotReportUtils {
         boolean hasBudgets = users.stream().anyMatch(u -> budgets.containsKey(u.userId));
 
         if (hasBudgets) {
-            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %8s  %16s  %10s%n",
-                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "Usage %",
-                    "Increased Quota", "Usage %");
-            System.out.println("-".repeat(155));
+            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %10s  %16s  %11s%n",
+                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "% of quota",
+                    "Budget Credits", "% of budget");
+            System.out.println("-".repeat(159));
         } else {
-            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %8s%n",
-                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "Usage %");
-            System.out.println("-".repeat(125));
+            System.out.printf("%-5s  %-10s  %-30s  %-35s  %13s  %13s  %10s%n",
+                    "#", "User ID", "Name", "Email", "Credits Used", "Monthly Quota", "% of quota");
+            System.out.println("-".repeat(128));
         }
 
         int rank = 1;
@@ -162,19 +162,18 @@ final class CopilotReportUtils {
             if (hasBudgets) {
                 Integer budget = budgets.get(u.userId);
                 if (budget != null) {
-                    long increasedQuota = (long) budget * 100;
-                    double quotaPct = increasedQuota > 0 ? (u.totalQuantity / increasedQuota) * 100.0 : 0.0;
-                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%  %15d  %9.1f%%%n",
-                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(),
-                            increasedQuota, quotaPct);
+                    long budgetCredits = (long) budget * 100;
+                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %9.1f%%  %15d  %10.1f%%%n",
+                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(null),
+                            budgetCredits, u.usagePercent(budget));
                 } else {
-                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%  %15s  %10s%n",
-                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(),
+                    System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %9.1f%%  %15s  %11s%n",
+                            rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(null),
                             "-", "-");
                 }
             } else {
-                System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %7.1f%%%n",
-                        rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent());
+                System.out.printf("%-5d  %-10s  %-30s  %-35s  %13.2f  %13.0f  %9.1f%%%n",
+                        rank++, u.userId, name, email, u.totalQuantity, u.quota, u.usagePercent(null));
             }
         }
     }
