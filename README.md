@@ -1,45 +1,42 @@
 # ghcp-mgmt
 
-GitHub REST API management CLI.
+CLI for managing GitHub Copilot user usage and budgets across a GitHub Enterprise organisation. Wraps the GitHub REST API to download usage reports, identify heavy/light users, and create or update per-user spending budgets.
 
 ## Prerequisites
 
 - Java 25+
 - Maven 3.6+
-- API docs https://docs.github.com/en/enterprise-cloud@latest/rest/quickstart?apiVersion=2026-03-10
+- API docs: https://docs.github.com/en/enterprise-cloud@latest/rest/quickstart?apiVersion=2026-03-10
 
-## Running
+## Building & Running
 
-### From source (no packaging needed)
+### From source (development)
 
-Run directly against compiled classes — fastest for development:
-
-```bash
-mvn exec:java ""-Dexec.args=user me"
-```
-
-After making changes, compile first (only touches changed files):
+Run directly against compiled classes — no packaging step needed:
 
 ```bash
-mvn compile exec:java ""-Dexec.args=user me"
+mvn exec:java "-Dexec.args=user me"
 ```
 
-### Packaged JAR (fat jar with all dependencies)
+Recompile and run in one step:
 
-Build and run the shaded JAR:
+```bash
+mvn compile exec:java "-Dexec.args=user me"
+```
+
+### Packaged native app (bundled JRE)
+
+`mvn package` produces a self-contained native application under `target/dist/ghcp-mgmt/` using `jpackage`. This bundles a trimmed JRE — no Java installation required on the target machine.
 
 ```bash
 mvn package
-java -jar target/ghcp-mgmt-1.0.0.jar user me
 ```
 
-### Installed scripts
-
-A packaged JAR is generated in `target/` and can be run with the wrapper scripts:
+Run the wrapper scripts from the `target/dist/ghcp-mgmt/` directory (or anywhere after adding it to `PATH`):
 
 ```bash
-./ghcp-mgmt.sh user me   # Linux/macOS
-ghcp-mgmt.bat user me    # Windows
+./ghcp-mgmt user me   # Linux/macOS
+ghcp-mgmt user me     # Windows
 ```
 
 ## Configuration
@@ -52,6 +49,12 @@ Place a `.ghcp-mgmt.properties` file in the project directory:
 | `github.base-url`    | no       | `https://api.github.com` | API base URL (use for GitHub Enterprise)      |
 | `github.enterprise`  | no       | —                        | Enterprise slug (required for billing commands) |
 | `github.org`         | no       | —                        | Organisation name (for org-scoped commands)   |
+
+## Custom Certificates
+
+Place any `.cer` or `.crt` files (PEM or DER encoded X.509) in the `certs/` folder alongside `.ghcp-mgmt.properties`. They are loaded at startup and added to the JVM trust store for all HTTPS connections — useful in environments with a corporate TLS inspection proxy.
+
+The folder is pre-created by `mvn package` inside the dist bundle. Simply drop certificates there before distributing or running.
 
 ## Usage
 
