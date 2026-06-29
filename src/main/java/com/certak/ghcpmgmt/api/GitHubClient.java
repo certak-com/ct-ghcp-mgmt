@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.certak.ghcpmgmt.config.AppConfig;
 
 import java.net.URI;
+import java.util.concurrent.ThreadLocalRandom;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -37,6 +38,7 @@ public class GitHubClient {
     public <T> T get(String path, Class<T> responseType) throws GitHubApiException {
         String url = config.getBaseUrl() + path;
 
+        long nextSleepMs = 0;
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": GET " + url);
@@ -46,10 +48,9 @@ public class GitHubClient {
             }
 
             if (attempt > 0) {
-                long delay = (long) Math.pow(2, attempt);
-                System.err.println("  Waiting " + delay + "s before retry...");
+                System.err.println("  Waiting " + nextSleepMs + "ms before retry...");
                 try {
-                    Thread.sleep(delay * 1000);
+                    Thread.sleep(nextSleepMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     System.err.println(attemptLabel + " FAILED: Request interrupted");
@@ -78,6 +79,7 @@ public class GitHubClient {
                 System.err.println("  Response: " + response.statusCode());
 
                 if (isRetryable(response.statusCode())) {
+                    nextSleepMs = retryDelay(response, attempt + 1);
                     System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
@@ -106,6 +108,7 @@ public class GitHubClient {
     public <T> T post(String path, String jsonBody, Class<T> responseType) throws GitHubApiException {
         String url = config.getBaseUrl() + path;
 
+        long nextSleepMs = 0;
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": POST " + url);
@@ -115,10 +118,9 @@ public class GitHubClient {
             }
 
             if (attempt > 0) {
-                long delay = (long) Math.pow(2, attempt);
-                System.err.println("  Waiting " + delay + "s before retry...");
+                System.err.println("  Waiting " + nextSleepMs + "ms before retry...");
                 try {
-                    Thread.sleep(delay * 1000);
+                    Thread.sleep(nextSleepMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     System.err.println(attemptLabel + " FAILED: Request interrupted");
@@ -148,6 +150,7 @@ public class GitHubClient {
                 System.err.println("  Response: " + response.statusCode());
 
                 if (isRetryable(response.statusCode())) {
+                    nextSleepMs = retryDelay(response, attempt + 1);
                     System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
@@ -174,15 +177,15 @@ public class GitHubClient {
      * Download a file from an absolute URL (e.g., a report download URL) and write it to disk.
      */
     public void downloadToFile(String url, Path destination) throws GitHubApiException {
+        long nextSleepMs = 0;
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Download" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": GET " + url);
 
             if (attempt > 0) {
-                long delay = (long) Math.pow(2, attempt);
-                System.err.println("  Waiting " + delay + "s before retry...");
+                System.err.println("  Waiting " + nextSleepMs + "ms before retry...");
                 try {
-                    Thread.sleep(delay * 1000);
+                    Thread.sleep(nextSleepMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new GitHubApiException("Request interrupted", ie);
@@ -211,6 +214,7 @@ public class GitHubClient {
                 System.err.println("  Response: " + response.statusCode());
 
                 if (isRetryable(response.statusCode())) {
+                    nextSleepMs = retryDelay(response, attempt + 1);
                     System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
@@ -237,15 +241,15 @@ public class GitHubClient {
     public <T> T patch(String path, String jsonBody, Class<T> responseType) throws GitHubApiException {
         String url = config.getBaseUrl() + path;
 
+        long nextSleepMs = 0;
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": PATCH " + url);
 
             if (attempt > 0) {
-                long delay = (long) Math.pow(2, attempt);
-                System.err.println("  Waiting " + delay + "s before retry...");
+                System.err.println("  Waiting " + nextSleepMs + "ms before retry...");
                 try {
-                    Thread.sleep(delay * 1000);
+                    Thread.sleep(nextSleepMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     System.err.println(attemptLabel + " FAILED: Request interrupted");
@@ -275,6 +279,7 @@ public class GitHubClient {
                 System.err.println("  Response: " + response.statusCode());
 
                 if (isRetryable(response.statusCode())) {
+                    nextSleepMs = retryDelay(response, attempt + 1);
                     System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
@@ -303,6 +308,7 @@ public class GitHubClient {
     public <T> T delete(String path, Class<T> responseType) throws GitHubApiException {
         String url = config.getBaseUrl() + path;
 
+        long nextSleepMs = 0;
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             String attemptLabel = attempt == 0 ? "Request" : "Retry " + attempt + "/" + MAX_RETRIES;
             System.err.println(attemptLabel + ": DELETE " + url);
@@ -312,10 +318,9 @@ public class GitHubClient {
             }
 
             if (attempt > 0) {
-                long delay = (long) Math.pow(2, attempt);
-                System.err.println("  Waiting " + delay + "s before retry...");
+                System.err.println("  Waiting " + nextSleepMs + "ms before retry...");
                 try {
-                    Thread.sleep(delay * 1000);
+                    Thread.sleep(nextSleepMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     System.err.println(attemptLabel + " FAILED: Request interrupted");
@@ -344,6 +349,7 @@ public class GitHubClient {
                 System.err.println("  Response: " + response.statusCode());
 
                 if (isRetryable(response.statusCode())) {
+                    nextSleepMs = retryDelay(response, attempt + 1);
                     System.err.println("  Retryable status code, will retry...");
                     continue;
                 }
@@ -364,6 +370,25 @@ public class GitHubClient {
 
         System.err.println("FAILED: Max retries exceeded for " + url);
         throw new GitHubApiException("Max retries exceeded for " + url);
+    }
+
+    /**
+     * Returns the delay in ms before the next retry.
+     * Honours the Retry-After response header (seconds) when present; otherwise uses
+     * jittered exponential backoff: 2^n seconds ± up to 50% jitter.
+     */
+    private long retryDelay(HttpResponse<?> response, int nextAttempt) {
+        String retryAfter = response.headers().firstValue("Retry-After").orElse(null);
+        if (retryAfter != null) {
+            try {
+                long seconds = Long.parseLong(retryAfter.trim());
+                System.err.println("  Retry-After: " + seconds + "s (from server)");
+                return seconds * 1000L;
+            } catch (NumberFormatException ignored) {}
+        }
+        long base = (long) Math.pow(2, nextAttempt) * 1000L;
+        long jitter = ThreadLocalRandom.current().nextLong(base / 2 + 1);
+        return base + jitter;
     }
 
     private boolean isRetryable(int statusCode) {

@@ -236,6 +236,7 @@ final class CopilotReportUtils {
             }
             if (!Boolean.TRUE.equals(response.getHas_next_page())) break;
             page++;
+            try { Thread.sleep(50); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         }
         return all;
     }
@@ -306,6 +307,7 @@ final class CopilotReportUtils {
                 }
                 if (members.length < 100) break;
                 page++;
+                try { Thread.sleep(50); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
 
             return logins;
