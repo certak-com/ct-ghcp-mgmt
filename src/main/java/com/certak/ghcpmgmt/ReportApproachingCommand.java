@@ -126,6 +126,20 @@ public class ReportApproachingCommand implements Callable<Integer> {
                 }
             }
 
+            long aics = (long) resolvedAmount * 100;
+            if (yes) {
+                System.out.printf("Budget amount: $%d USD (= %,d AICs) [auto-confirmed with --yes]%n", resolvedAmount, aics);
+            } else {
+                System.out.printf("You entered $%d USD — that's %,d AICs. Are you sure this is a dollar amount and not AICs? [y/N]: ",
+                        resolvedAmount, aics);
+                System.out.flush();
+                String confirm = reader.readLine();
+                if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+                    System.out.println("Aborted.");
+                    return 0;
+                }
+            }
+
             AppConfig config = AppConfig.load();
             String enterprise = config.getEnterprise();
             if (enterprise == null || enterprise.isBlank()) {
