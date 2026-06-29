@@ -36,9 +36,11 @@ public class GhcpMgmtApp implements Runnable {
     };
 
     public static void main(String[] args) {
+        System.out.println("=== GitHub REST API Management CLI ===");
         System.setProperty("java.net.useSystemProxies", "true");
         CertLoader.installFromHome();
         checkConnectivity();
+        System.out.println();
         int exitCode = new CommandLine(new GhcpMgmtApp()).execute(args);
         System.exit(exitCode);
     }

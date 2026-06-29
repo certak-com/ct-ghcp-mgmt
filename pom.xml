@@ -145,6 +145,9 @@
                                 <copy file="${project.basedir}/mappings/mappings.txt"
                                       todir="${project.build.directory}/dist/ghcp-mgmt/mappings"
                                       failonerror="false"/>
+                                <copy file="${project.basedir}/USAGE.md"
+                                      todir="${project.build.directory}/dist/ghcp-mgmt"
+                                      failonerror="false"/>
 
                             </target>
                         </configuration>

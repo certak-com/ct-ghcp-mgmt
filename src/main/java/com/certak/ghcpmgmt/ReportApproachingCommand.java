@@ -209,6 +209,8 @@ public class ReportApproachingCommand implements Callable<Integer> {
         String emailList = String.join("; ", emails);
 
         StringBuilder summary = new StringBuilder();
+        summary.append("Email list: ").append(emailList).append("\n\n");
+
         summary.append("Subject: GitHub Copilot Budget Update — ").append(timestamp).append("\n\n");
         summary.append("The following ").append(processed.size())
                .append(" user budget(s) were created/updated to $").append(budgetAmount).append(":\n\n");
@@ -222,7 +224,6 @@ public class ReportApproachingCommand implements Callable<Integer> {
 
         System.out.println();
         System.out.println("=== Budget Update Summary ===");
-        System.out.println("Email list: " + emailList);
         System.out.println(summary);
 
         try {

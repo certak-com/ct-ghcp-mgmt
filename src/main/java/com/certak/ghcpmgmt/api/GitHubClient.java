@@ -63,7 +63,6 @@ public class GitHubClient {
                     .header("Authorization", "Bearer " + config.getToken())
                     .header("X-GitHub-Api-Version", API_VERSION)
                     .header("Accept", "application/vnd.github+json")
-                    .header("X-RateLimit-Reset", "true")
                     .GET()
                     .build();
 
@@ -368,6 +367,6 @@ public class GitHubClient {
     }
 
     private boolean isRetryable(int statusCode) {
-        return statusCode == 429 || (statusCode >= 500 && statusCode < 600);
+        return statusCode == 429 || statusCode == 407 || (statusCode >= 500 && statusCode < 600);
     }
 }
